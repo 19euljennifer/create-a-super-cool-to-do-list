@@ -1,11 +1,11 @@
 import { Router, Request, Response } from "express";
 import {
   getAllTodos,
-  getTodoById,
   createTodo,
   updateTodo,
   deleteTodo,
   toggleTodo,
+  bulkComplete,
 } from "./store";
 import { Priority } from "./types";
 
@@ -17,9 +17,10 @@ function isValidPriority(value: unknown): value is Priority {
   return typeof value === "string" && VALID_PRIORITIES.includes(value as Priority);
 }
 
-// GET /todos
+// GET /todos?search=term
 router.get("/", (req: Request, res: Response) => {
-  const todos = getAllTodos();
+  const search = req.query.search as string | undefined;
+  const todos = getAllTodos(search);
   res.json(todos);
 });
 
@@ -39,6 +40,29 @@ router.post("/", (req: Request, res: Response) => {
 
   const todo = createTodo({ title: title.trim(), description, priority });
   res.status(201).json(todo);
+});
+
+// POST /todos/bulk-complete
+router.post("/bulk-complete", (req: Request, res: Response) => {
+  const { ids } = req.body;
+
+  if (!Array.isArray(ids)) {
+    res.status(400).json({ error: "ids must be an array of todo IDs" });
+    return;
+  }
+
+  if (ids.length === 0) {
+    res.status(400).json({ error: "ids array must not be empty" });
+    return;
+  }
+
+  if (!ids.every((id: unknown) => typeof id === "string")) {
+    res.status(400).json({ error: "All ids must be strings" });
+    return;
+  }
+
+  const result = bulkComplete(ids);
+  res.json(result);
 });
 
 // PUT /todos/:id
