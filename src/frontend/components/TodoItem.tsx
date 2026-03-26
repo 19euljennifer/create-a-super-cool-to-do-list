@@ -1,12 +1,17 @@
-import { useState } from "react";
-import { Check, Trash2, Clock, CalendarDays } from "lucide-react";
+import { useState, useRef } from "react";
+import { Check, Trash2, Clock, CalendarDays, GripVertical } from "lucide-react";
 import { Todo, Priority } from "../types";
 
 interface TodoItemProps {
   todo: Todo;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onComplete: (x: number, y: number) => void;
   isDeleting: boolean;
+  onDragStart: (id: string) => void;
+  onDragOver: (id: string) => void;
+  onDragEnd: () => void;
+  isDragOver: boolean;
 }
 
 const PRIORITY_STYLES: Record<Priority, { color: string; bg: string; label: string }> = {
@@ -30,11 +35,28 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
-export function TodoItem({ todo, onToggle, onDelete, isDeleting }: TodoItemProps) {
+export function TodoItem({
+  todo,
+  onToggle,
+  onDelete,
+  onComplete,
+  isDeleting,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  isDragOver,
+}: TodoItemProps) {
   const priority = PRIORITY_STYLES[todo.priority];
   const [justToggled, setJustToggled] = useState(false);
+  const checkboxRef = useRef<HTMLButtonElement>(null);
 
   const handleToggle = () => {
+    if (!todo.completed) {
+      const rect = checkboxRef.current?.getBoundingClientRect();
+      if (rect) {
+        onComplete(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }
+    }
     setJustToggled(true);
     onToggle(todo.id);
     setTimeout(() => setJustToggled(false), 300);
@@ -42,17 +64,33 @@ export function TodoItem({ todo, onToggle, onDelete, isDeleting }: TodoItemProps
 
   return (
     <div
+      draggable
+      onDragStart={() => onDragStart(todo.id)}
+      onDragOver={(e) => {
+        e.preventDefault();
+        onDragOver(todo.id);
+      }}
+      onDragEnd={onDragEnd}
       className={`todo-card group flex items-start gap-3 rounded-xl p-4 ${
         isDeleting ? "todo-exit" : "todo-enter"
-      }`}
+      } ${isDragOver ? "drag-over" : ""}`}
       style={{
         backgroundColor: "var(--color-surface)",
-        border: "1px solid var(--color-border)",
+        border: `1px solid ${isDragOver ? "var(--color-primary)" : "var(--color-border)"}`,
         boxShadow: "0 1px 3px var(--color-shadow)",
       }}
     >
+      {/* Drag handle */}
+      <div
+        className="mt-0.5 flex shrink-0 cursor-grab items-center active:cursor-grabbing"
+        style={{ color: "var(--color-text-secondary)", opacity: 0.4 }}
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+
       {/* Checkbox */}
       <button
+        ref={checkboxRef}
         onClick={handleToggle}
         className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md transition-all duration-200 hover:scale-110 ${
           justToggled ? "check-pulse" : ""
