@@ -1,17 +1,18 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Moon, Sun, ListTodo, Sparkles } from "lucide-react";
 import { Todo, Priority, FilterStatus, SortBy } from "./types";
+import { api } from "./api";
 import { TodoForm } from "./components/TodoForm";
 import { TodoItem } from "./components/TodoItem";
 import { FilterBar } from "./components/FilterBar";
 import { Confetti } from "./components/Confetti";
-
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
-}
+import { Toast } from "./components/Toast";
+import { LoadingSkeleton } from "./components/LoadingSkeleton";
 
 export default function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
       return window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -27,6 +28,17 @@ export default function App() {
   const dragSource = useRef<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
+  const showError = useCallback((msg: string) => {
+    setError(msg);
+  }, []);
+
+  useEffect(() => {
+    api.getAll()
+      .then((data) => setTodos(data))
+      .catch((err: Error) => showError(err.message))
+      .finally(() => setLoading(false));
+  }, [showError]);
+
   const triggerConfetti = useCallback((x: number, y: number) => {
     if (confettiTimer.current) clearTimeout(confettiTimer.current);
     setConfetti({ active: true, x, y });
@@ -34,40 +46,54 @@ export default function App() {
   }, []);
 
   const addTodo = useCallback(
-    (title: string, description: string, priority: Priority, dueDate: string | null = null) => {
-      const now = new Date().toISOString();
-      const newTodo: Todo = {
-        id: generateId(),
-        title,
-        description,
-        completed: false,
-        priority,
-        dueDate,
-        createdAt: now,
-        updatedAt: now,
-      };
-      setTodos((prev) => [newTodo, ...prev]);
+    async (title: string, description: string, priority: Priority, dueDate: string | null = null) => {
+      try {
+        const newTodo = await api.create({ title, description, priority, dueDate });
+        setTodos((prev) => [newTodo, ...prev]);
+      } catch (err) {
+        showError(err instanceof Error ? err.message : "Failed to add task");
+      }
     },
-    []
+    [showError]
   );
 
-  const toggleTodo = useCallback((id: string) => {
+  const toggleTodo = useCallback(async (id: string) => {
     setTodos((prev) =>
       prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
     );
-  }, []);
+    try {
+      const updated = await api.toggle(id);
+      setTodos((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    } catch (err) {
+      setTodos((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+      );
+      showError(err instanceof Error ? err.message : "Failed to update task");
+    }
+  }, [showError]);
 
-  const deleteTodo = useCallback((id: string) => {
+  const deleteTodo = useCallback(async (id: string) => {
+    const original = todos.find((t) => t.id === id);
     setDeletingIds((prev) => new Set(prev).add(id));
-    setTimeout(() => {
+
+    setTimeout(async () => {
       setTodos((prev) => prev.filter((t) => t.id !== id));
       setDeletingIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
+
+      try {
+        await api.delete(id);
+      } catch (err) {
+        if (original) {
+          setTodos((prev) => [...prev, original]);
+        }
+        showError(err instanceof Error ? err.message : "Failed to delete task");
+      }
     }, 300);
-  }, []);
+  }, [todos, showError]);
 
   const handleDragStart = useCallback((id: string) => {
     dragSource.current = id;
@@ -134,6 +160,7 @@ export default function App() {
   return (
     <div className={dark ? "dark" : ""}>
       <Confetti active={confetti.active} x={confetti.x} y={confetti.y} />
+      {error && <Toast message={error} onDismiss={() => setError(null)} />}
       <div
         className="min-h-screen transition-colors duration-300"
         style={{ backgroundColor: "var(--color-bg)" }}
@@ -157,7 +184,7 @@ export default function App() {
                   className="text-sm"
                   style={{ color: "var(--color-text-secondary)" }}
                 >
-                  {counts.active} task{counts.active !== 1 ? "s" : ""} remaining
+                  {loading ? "Loading..." : `${counts.active} task${counts.active !== 1 ? "s" : ""} remaining`}
                 </p>
               </div>
             </div>
@@ -177,7 +204,7 @@ export default function App() {
           </header>
 
           {/* Progress bar */}
-          {todos.length > 0 && (
+          {!loading && todos.length > 0 && (
             <div className="mb-6">
               <div className="mb-1.5 flex items-center justify-between">
                 <span
@@ -212,17 +239,21 @@ export default function App() {
           <TodoForm onAdd={addTodo} />
 
           {/* Filter & Sort Bar */}
-          <FilterBar
-            filter={filter}
-            sortBy={sortBy}
-            onFilterChange={setFilter}
-            onSortChange={setSortBy}
-            counts={counts}
-          />
+          {!loading && (
+            <FilterBar
+              filter={filter}
+              sortBy={sortBy}
+              onFilterChange={setFilter}
+              onSortChange={setSortBy}
+              counts={counts}
+            />
+          )}
 
           {/* Todo List */}
           <div className="space-y-2">
-            {filteredTodos.length === 0 ? (
+            {loading ? (
+              <LoadingSkeleton />
+            ) : filteredTodos.length === 0 ? (
               <div
                 className="empty-bounce rounded-xl py-12 text-center"
                 style={{
@@ -273,7 +304,7 @@ export default function App() {
           </div>
 
           {/* Footer */}
-          {todos.length > 0 && (
+          {!loading && todos.length > 0 && (
             <p
               className="mt-6 text-center text-xs"
               style={{ color: "var(--color-text-secondary)" }}

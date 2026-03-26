@@ -193,3 +193,24 @@ button:focus-visible {
   background-color: var(--color-border);
   border-radius: 3px;
 }
+
+/* Toast slide-up */
+@keyframes toastIn {
+  0% { opacity: 0; transform: translate(-50%, 20px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.toast-enter {
+  animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Skeleton shimmer */
+@keyframes skeletonShimmer {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.skeleton {
+  animation: skeletonShimmer 1.2s ease-in-out infinite;
+}
