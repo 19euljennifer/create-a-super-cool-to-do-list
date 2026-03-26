@@ -1,9 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Moon, Sun, ListTodo, Sparkles } from "lucide-react";
 import { Todo, Priority, FilterStatus, SortBy } from "./types";
 import { TodoForm } from "./components/TodoForm";
 import { TodoItem } from "./components/TodoItem";
 import { FilterBar } from "./components/FilterBar";
+import { Confetti } from "./components/Confetti";
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -20,6 +21,17 @@ export default function App() {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [sortBy, setSortBy] = useState<SortBy>("date");
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [confetti, setConfetti] = useState({ active: false, x: 0, y: 0 });
+  const confettiTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const dragSource = useRef<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  const triggerConfetti = useCallback((x: number, y: number) => {
+    if (confettiTimer.current) clearTimeout(confettiTimer.current);
+    setConfetti({ active: true, x, y });
+    confettiTimer.current = setTimeout(() => setConfetti((c) => ({ ...c, active: false })), 1500);
+  }, []);
 
   const addTodo = useCallback(
     (title: string, description: string, priority: Priority, dueDate: string | null = null) => {
@@ -57,6 +69,33 @@ export default function App() {
     }, 300);
   }, []);
 
+  const handleDragStart = useCallback((id: string) => {
+    dragSource.current = id;
+  }, []);
+
+  const handleDragOver = useCallback((id: string) => {
+    setDragOverId(id);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    const sourceId = dragSource.current;
+    const targetId = dragOverId;
+    dragSource.current = null;
+    setDragOverId(null);
+
+    if (!sourceId || !targetId || sourceId === targetId) return;
+
+    setTodos((prev) => {
+      const items = [...prev];
+      const sourceIdx = items.findIndex((t) => t.id === sourceId);
+      const targetIdx = items.findIndex((t) => t.id === targetId);
+      if (sourceIdx === -1 || targetIdx === -1) return prev;
+      const [moved] = items.splice(sourceIdx, 1);
+      items.splice(targetIdx, 0, moved!);
+      return items;
+    });
+  }, [dragOverId]);
+
   const priorityOrder: Record<Priority, number> = {
     high: 0,
     medium: 1,
@@ -79,7 +118,7 @@ export default function App() {
         if (!b.dueDate) return -1;
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       }
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return 0;
     });
 
   const counts = {
@@ -94,6 +133,7 @@ export default function App() {
 
   return (
     <div className={dark ? "dark" : ""}>
+      <Confetti active={confetti.active} x={confetti.x} y={confetti.y} />
       <div
         className="min-h-screen transition-colors duration-300"
         style={{ backgroundColor: "var(--color-bg)" }}
@@ -221,7 +261,12 @@ export default function App() {
                   todo={todo}
                   onToggle={toggleTodo}
                   onDelete={deleteTodo}
+                  onComplete={triggerConfetti}
                   isDeleting={deletingIds.has(todo.id)}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDragEnd={handleDragEnd}
+                  isDragOver={dragOverId === todo.id}
                 />
               ))
             )}

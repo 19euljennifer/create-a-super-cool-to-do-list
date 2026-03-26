@@ -133,6 +133,21 @@ body {
   box-shadow: 0 4px 12px var(--color-shadow-lg);
 }
 
+.todo-card.drag-over {
+  border-color: var(--color-primary);
+  background-color: var(--color-surface-hover);
+  transform: scale(1.01);
+}
+
+.todo-card[draggable="true"] {
+  cursor: grab;
+}
+
+.todo-card[draggable="true"]:active {
+  cursor: grabbing;
+  opacity: 0.7;
+}
+
 /* Header gradient background */
 .header-gradient {
   background: linear-gradient(135deg, var(--color-primary) 0%, #8b5cf6 50%, #ec4899 100%);
