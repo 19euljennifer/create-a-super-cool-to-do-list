@@ -1,0 +1,216 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-text: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-border: #e2e8f0;
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-high: #ef4444;
+  --color-high-bg: #fef2f2;
+  --color-medium: #f59e0b;
+  --color-medium-bg: #fffbeb;
+  --color-low: #22c55e;
+  --color-low-bg: #f0fdf4;
+  --color-completed: #94a3b8;
+  --color-shadow: rgba(0, 0, 0, 0.06);
+  --color-shadow-lg: rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-surface-hover: #334155;
+  --color-text: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-border: #334155;
+  --color-primary: #818cf8;
+  --color-primary-hover: #6366f1;
+  --color-high-bg: #450a0a;
+  --color-medium-bg: #451a03;
+  --color-low-bg: #052e16;
+  --color-shadow: rgba(0, 0, 0, 0.2);
+  --color-shadow-lg: rgba(0, 0, 0, 0.4);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+}
+
+/* Smooth item entrance */
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.95);
+  }
+  60% {
+    transform: translateY(2px) scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Smooth item exit */
+@keyframes slideOut {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(40px) scale(0.9);
+  }
+}
+
+/* Subtle pulse for checkbox on complete */
+@keyframes checkPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* Gradient shimmer for header icon */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Bounce in for empty state */
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.8); }
+  60% { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.todo-enter {
+  animation: slideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.todo-exit {
+  animation: slideOut 0.3s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+.check-pulse {
+  animation: checkPulse 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.empty-bounce {
+  animation: bounceIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.strikethrough {
+  text-decoration: line-through;
+  color: var(--color-completed);
+  transition: all 0.3s ease;
+}
+
+/* Card hover lift effect */
+.todo-card {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.2s ease,
+              border-color 0.2s ease;
+}
+
+.todo-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--color-shadow-lg);
+}
+
+.todo-card.drag-over {
+  border-color: var(--color-primary);
+  background-color: var(--color-surface-hover);
+  transform: scale(1.01);
+}
+
+.todo-card[draggable="true"] {
+  cursor: grab;
+}
+
+.todo-card[draggable="true"]:active {
+  cursor: grabbing;
+  opacity: 0.7;
+}
+
+/* Header gradient background */
+.header-gradient {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #8b5cf6 50%, #ec4899 100%);
+  background-size: 200% auto;
+}
+
+/* Theme toggle rotation */
+.theme-toggle {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.theme-toggle:hover {
+  transform: rotate(30deg) scale(1.15);
+}
+
+/* Focus ring for accessibility */
+input:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Progress bar animation */
+@keyframes progressGrow {
+  from { width: 0%; }
+}
+
+.progress-bar {
+  animation: progressGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 3px;
+}
+
+/* Toast slide-up */
+@keyframes toastIn {
+  0% { opacity: 0; transform: translate(-50%, 20px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.toast-enter {
+  animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Skeleton shimmer */
+@keyframes skeletonShimmer {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.skeleton {
+  animation: skeletonShimmer 1.2s ease-in-out infinite;
+}
