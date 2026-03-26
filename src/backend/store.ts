@@ -12,13 +12,16 @@ export function getTodoById(id: string): Todo | undefined {
 }
 
 export function createTodo(input: CreateTodoInput): Todo {
+  const now = new Date().toISOString();
   const todo: Todo = {
     id: crypto.randomUUID(),
     title: input.title,
     description: input.description ?? "",
     completed: false,
     priority: input.priority ?? "medium",
-    createdAt: new Date().toISOString(),
+    dueDate: input.dueDate ?? null,
+    createdAt: now,
+    updatedAt: now,
   };
   todos.set(todo.id, todo);
   return todo;
@@ -35,7 +38,7 @@ export function updateTodo(id: string, input: UpdateTodoInput): Todo | null {
     }
   }
 
-  const updated: Todo = { ...existing, ...changes };
+  const updated: Todo = { ...existing, ...changes, updatedAt: new Date().toISOString() };
   todos.set(id, updated);
   return updated;
 }
@@ -49,6 +52,7 @@ export function toggleTodo(id: string): Todo | null {
   if (!existing) return null;
 
   existing.completed = !existing.completed;
+  existing.updatedAt = new Date().toISOString();
   todos.set(id, existing);
   return existing;
 }

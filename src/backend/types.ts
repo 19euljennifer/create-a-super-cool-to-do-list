@@ -6,13 +6,16 @@ export interface Todo {
   description: string;
   completed: boolean;
   priority: Priority;
+  dueDate: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateTodoInput {
   title: string;
   description?: string;
   priority?: Priority;
+  dueDate?: string;
 }
 
 export interface UpdateTodoInput {
@@ -20,4 +23,5 @@ export interface UpdateTodoInput {
   description?: string;
   priority?: Priority;
   completed?: boolean;
+  dueDate?: string | null;
 }

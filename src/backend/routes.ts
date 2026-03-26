@@ -1,7 +1,6 @@
 import { Router, Request, Response } from "express";
 import {
   getAllTodos,
-  getTodoById,
   createTodo,
   updateTodo,
   deleteTodo,
@@ -18,14 +17,14 @@ function isValidPriority(value: unknown): value is Priority {
 }
 
 // GET /todos
-router.get("/", (req: Request, res: Response) => {
+router.get("/", (_req: Request, res: Response) => {
   const todos = getAllTodos();
   res.json(todos);
 });
 
 // POST /todos
 router.post("/", (req: Request, res: Response) => {
-  const { title, description, priority } = req.body;
+  const { title, description, priority, dueDate } = req.body;
 
   if (!title || typeof title !== "string" || title.trim() === "") {
     res.status(400).json({ error: "Title is required and must be a non-empty string" });
@@ -37,14 +36,19 @@ router.post("/", (req: Request, res: Response) => {
     return;
   }
 
-  const todo = createTodo({ title: title.trim(), description, priority });
+  if (dueDate !== undefined && typeof dueDate !== "string") {
+    res.status(400).json({ error: "dueDate must be a valid ISO date string" });
+    return;
+  }
+
+  const todo = createTodo({ title: title.trim(), description, priority, dueDate });
   res.status(201).json(todo);
 });
 
 // PUT /todos/:id
 router.put("/:id", (req: Request, res: Response) => {
   const id = req.params.id as string;
-  const { title, description, priority, completed } = req.body;
+  const { title, description, priority, completed, dueDate } = req.body;
 
   if (title !== undefined && (typeof title !== "string" || title.trim() === "")) {
     res.status(400).json({ error: "Title must be a non-empty string" });
@@ -56,7 +60,12 @@ router.put("/:id", (req: Request, res: Response) => {
     return;
   }
 
-  const updated = updateTodo(id, { title, description, priority, completed });
+  if (dueDate !== undefined && dueDate !== null && typeof dueDate !== "string") {
+    res.status(400).json({ error: "dueDate must be a valid ISO date string or null" });
+    return;
+  }
+
+  const updated = updateTodo(id, { title, description, priority, completed, dueDate });
   if (!updated) {
     res.status(404).json({ error: "Todo not found" });
     return;
